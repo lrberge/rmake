@@ -81,7 +81,6 @@ deparse_code = function(x){
 find_project_path = function(force = FALSE){
     # finds the root directory
     # we just look up the search path to find the root
-    # Only works for Rstudio projects!
 
     past_path = "init"
     path = normalizePath(".", "/")
@@ -91,7 +90,7 @@ find_project_path = function(force = FALSE){
     nmax = 10
     while(past_path != path && i <= nmax){
         i = i + 1
-        if(length(list.files(path, pattern = "Rproj$")) > 0){
+        if(length(list.files(path, pattern = "(Rproj|git|vscode)$")) > 0){
             is_found = TRUE
             break
         } else {
