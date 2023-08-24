@@ -2,3 +2,7 @@
 ^\.Rproj\.user$
 ^.rmake
 ^\.vscode$
+^\.git$
+^\.github
+^_pkgdown\.yml
+^docs
