@@ -1,6 +1,6 @@
 useDynLib(rmake, .registration = TRUE)
 
-exportPattern("^[[:alpha:]]+")
+export(rmake)
 
 import(dreamerr)
 import(stringmagic)

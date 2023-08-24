@@ -59,67 +59,13 @@
 # - navigateToFile(file = character(0), line = -1L, column = -1L, moveCursor = TRUE)
 
 ####
-#### MAKE ####
-####
-
-deparse_long = function(x){
-    dep_x = deparse(x, width.cutoff = 500)
-    if(length(dep_x) == 1){
-        return(dep_x)
-    } else {
-        return(paste(gsub("^ +", "", dep_x), collapse = ""))
-    }
-}
-
-deparse_code = function(x){
-  res = as.character(x)
-  if(length(res) == 0) return("")
-  if(res[1] == "{") res = res[-1]
-  res
-}
-
-find_project_path = function(force = FALSE){
-    # finds the root directory
-    # we just look up the search path to find the root
-
-    past_path = "init"
-    path = normalizePath(".", "/")
-
-    is_found = FALSE
-    i = 1
-    nmax = 10
-    while(past_path != path && i <= nmax){
-        i = i + 1
-        if(length(list.files(path, pattern = "(Rproj|git|vscode)$")) > 0){
-            is_found = TRUE
-            break
-        } else {
-            past_path = path
-            path = dirname(path)
-        }
-    }
-
-    proj_path = NULL
-    if(is_found){
-        proj_path = path
-    }
-
-    if(force && is.null(proj_path)){
-        proj_path = normalizePath(".", "/")
-    }
-
-    proj_path
-}
-
-####
 #### User-level ####
 ####
-
 
 rmake = function(hard = FALSE, comment = FALSE){
 
   if(hard){
-    rm_file(".rmake/rmake.RData")
+    rm_file(root_path(".rmake/rmake.RData"))
   }
 
   # BEWARE: use here to find the root path
@@ -131,10 +77,10 @@ rmake = function(hard = FALSE, comment = FALSE){
   env_rprofile = new.env(parent = .GlobalEnv)
   pkgs = NULL
   fun_list = list()
-  # BEWARE: add here(".Rprofile")
-  if(file.exists(".Rprofile")){
+  
+  if(file_exists(root_path(".Rprofile"))){
     # the profile is ALWAYS evaluated
-    prof_text = readLines(".Rprofile")
+    prof_text = readLines(root_path(".Rprofile"))
     pkgs = find_packages(prof_text)
     prof_code = try(parse(text = prof_text, keep.source = FALSE))
     eval(prof_code, env_rprofile)
@@ -161,7 +107,8 @@ rmake = function(hard = FALSE, comment = FALSE){
   all_chunks = dep_graph$all_chunks
   dep_mat = dep_graph$dep_mat
 
-  lazy_run(all_chunks = dep_graph$all_chunks, dep_mat = dep_graph$dep_mat, env_rprofile = env_rprofile, comment = comment)
+  lazy_run(all_chunks = dep_graph$all_chunks, dep_mat = dep_graph$dep_mat, 
+           env_rprofile = env_rprofile, comment = comment)
 
 }
 
@@ -177,18 +124,14 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
 
   # !! beware the "project path" if the user provided the path argument (to run rmake in a separate folder)
 
-  if(!dir.exists(".rmake")){
-    dir.create(".rmake")
+  if(!dir.exists(root_path(".rmake"))){
+    dir.create(root_path(".rmake"))
   }
 
-  # project path
-  proj_path = find_project_path()
-  ppath = function(x) paste0(proj_path, "/", x)
-
   new = TRUE
-  if(file.exists(ppath(".rmake/rmake.RData"))){
+  if(file.exists(root_path(".rmake/rmake.RData"))){
     env = new.env(parent = emptyenv())
-    load(ppath(".rmake/rmake.RData"), envir = env)
+    load(root_path(".rmake/rmake.RData"), envir = env)
     if("info" %in% ls(env) && inherits(env$info, "rmake")){
       new = FALSE
       info = env$info
@@ -464,7 +407,7 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
   # saving
   info = all_chunks
   class(info) = "rmake"
-  save(info, file = ppath(".rmake/rmake.RData"))
+  save(info, file = root_path(".rmake/rmake.RData"))
 
   if(IS_ERROR){
 
