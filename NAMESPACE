@@ -1,0 +1,8 @@
+useDynLib(rmake, .registration = TRUE)
+
+exportPattern("^[[:alpha:]]+")
+
+import(dreamerr)
+import(stringmagic)
+
+importFrom(Rcpp, evalCpp)

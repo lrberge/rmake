@@ -1,0 +1,18 @@
+Package: rmake
+Type: Package
+Title: What the Package Does (Title Case)
+Version: 0.1.0
+Authors@R:
+    c(person(given = "Laurent",
+             family = "Berge",
+             role = c("aut", "cre"),
+             email = "laurent.berge@u-bordeaux.fr"))
+Description: Make without makefile for R.
+Imports: Rcpp, dreamerr, stringmagic
+LinkingTo: Rcpp
+VignetteBuilder: knitr
+License: GPL-3
+RoxygenNote: 7.2.0
+Roxygen: list(markdown = TRUE)
+Encoding: UTF-8
+LazyData: true
