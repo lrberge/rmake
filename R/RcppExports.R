@@ -17,3 +17,7 @@ cpp_valid_code_index <- function(R_str) {
     .Call(`_rmake_cpp_valid_code_index`, R_str)
 }
 
+cpp_absolute_to_relative <- function(R_paths, R_root) {
+    .Call(`_rmake_cpp_absolute_to_relative`, R_paths, R_root)
+}
+

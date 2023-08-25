@@ -55,12 +55,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_absolute_to_relative
+SEXP cpp_absolute_to_relative(SEXP R_paths, SEXP R_root);
+RcppExport SEXP _rmake_cpp_absolute_to_relative(SEXP R_pathsSEXP, SEXP R_rootSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type R_paths(R_pathsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type R_root(R_rootSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_absolute_to_relative(R_paths, R_root));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rmake_cpp_hash_string", (DL_FUNC) &_rmake_cpp_hash_string, 1},
     {"_rmake_cpp_extract_fun", (DL_FUNC) &_rmake_cpp_extract_fun, 2},
     {"_rmake_cpp_clean_comments", (DL_FUNC) &_rmake_cpp_clean_comments, 1},
     {"_rmake_cpp_valid_code_index", (DL_FUNC) &_rmake_cpp_valid_code_index, 1},
+    {"_rmake_cpp_absolute_to_relative", (DL_FUNC) &_rmake_cpp_absolute_to_relative, 2},
     {NULL, NULL, 0}
 };
 

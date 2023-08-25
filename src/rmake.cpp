@@ -379,3 +379,106 @@ Rcpp::List cpp_valid_code_index(SEXP R_str){
 
   return res;
 }
+
+
+void absolute_to_relative_single(const char *path, const char *root, std::string &res){
+  // NOTA: root NEVER contains a trailing slash
+  
+  res.clear();
+  
+  int n_path = std::strlen(path);
+  int n_root = std::strlen(root);
+  
+  // we ignore the root's trailing slash if provided
+  if(root[n_root - 1] == '/') --n_root;
+  
+  int n = n_path < n_root ? n_path : n_root;
+  
+  int i = 0;
+  int i_max_same = 0;
+  int n_same_segments = 0;
+  while(i < n && path[i] == root[i]){
+    if(path[i] == '/'){
+      ++n_same_segments;
+      i_max_same = i;
+    }
+    ++i;
+  }
+  
+  // p: bon/jour/les/gens
+  // r: bon/jour
+  // vs
+  // p: bon/journee/les/gens
+  // r: bon/jour
+  if(i == n){
+    if(n_path > n && path[n] == '/'){
+      // p: bon/jour/les/gens
+      // r: bon/jour
+      for(int j = n + 1 ; j < n_path ; ++j){
+        res += path[j];
+      }
+      return;
+    } else if(n_path == n_root){
+      // p: bon/jour
+      // r: bon/jour
+      res = ".";
+      return;
+    }
+  }
+  
+  // p: C:/bon/jour
+  // r: D:/hello/guys
+  if(n_same_segments == 0){
+    // different drives
+    for(int j = 0 ; j < n_path ; ++j){
+      res += path[j];
+    }
+    return;
+  }
+  
+  // p: bon/jour/les/gens
+  // r: bon/jour/mes/dames
+  int n_going_back = 1;
+  for(int j = i_max_same + 1 ; j < n_root ; ++j){
+    if(root[j] == '/'){
+      // remember that the root folder never contains a trailing slash
+      // that's why I init n_going_back to 1
+      ++n_going_back;
+    }
+  }
+  
+  for(int j = 0 ; j < n_going_back ; ++j){
+    res += "../";
+  }
+  
+  for(int j = i_max_same + 1 ; j < n_path ; ++j){
+    res += path[j];
+  }
+  
+}
+
+// [[Rcpp::export]]
+SEXP cpp_absolute_to_relative(SEXP R_paths, SEXP R_root){
+  
+  int n = Rf_length(R_paths);
+  
+  const char *root_path = Rf_translateCharUTF8(STRING_ELT(R_root, 0));
+  
+  SEXP res_all = PROTECT(Rf_allocVector(STRSXP, n));
+  std::string res;
+  
+  for(int i=0 ; i<n ; ++i){
+    const char *path = Rf_translateCharUTF8(STRING_ELT(R_paths, i));
+    absolute_to_relative_single(path, root_path, res);
+    SET_STRING_ELT(res_all, i, Rf_mkCharCE(res.c_str(), CE_UTF8));
+  }
+  
+  UNPROTECT(1);
+  
+  return res_all;  
+}
+
+
+
+
+
