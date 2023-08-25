@@ -4,6 +4,20 @@
 # ~: misc funs to support dev
 #------------------------------------------------------------------------------#
 
+
+
+####
+#### aliases to imports ####
+####
+
+sma = stringmagic::string_magic_alias(.check = FALSE)
+
+
+####
+#### internal misc ####
+####
+
+
 deparse_long = function(x){
     dep_x = deparse(x, width.cutoff = 500)
     if(length(dep_x) == 1){

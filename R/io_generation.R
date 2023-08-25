@@ -44,7 +44,7 @@ init_mock_funs = function(){
   
   for(type in c("io", "input", "output")){
     for(arg in io_targets){
-      fun_txt = .dsb("
+      fun_txt = sma("
       function(.[arg], ...){
         if(inherits(.[arg], 'connection')){
             # => nothing
@@ -52,7 +52,7 @@ init_mock_funs = function(){
         }
         attr(.[arg], 'type') = .[type]
         .[arg]
-      }")
+      }", .delim = ".[ ]")
     }
   }
   

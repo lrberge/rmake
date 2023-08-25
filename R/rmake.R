@@ -62,6 +62,7 @@
 #### User-level ####
 ####
 
+
 rmake = function(hard = FALSE, comment = FALSE){
 
   if(hard){
@@ -288,7 +289,7 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
       }
 
       m = readline("Proceed (y, yes; anything else: no)?  ")
-      if(!m %in% c("y", "yes")){
+      if(!tolower(trimws(m)) %in% c("y", "ye", "yes")){
         return(invisible(NULL))
       }
     }
@@ -986,6 +987,7 @@ create_chunks = function(text, fun_list = list(), env, pkg_all = NULL, filename 
 #### utilities ####
 ####
 
+
 capture_print_msg = function(expr){
     # function that captures both the stuff printed regularly on the console
     # and the messages (not the same channel)
@@ -1670,6 +1672,7 @@ source_dependencies = function(path){
 #### small utilities ####
 ####
 
+
 backup_file = function(f){
   # f is the raw file name
   f_raw = f
@@ -1928,20 +1931,15 @@ absolute_to_relative = function(path_all, origin = find_project_path()){
     res = ""
     nr = length(rest_wd)
     if(nr > 0){
-      res = dsb("`nr`*, '/'c!..")
+      # res = dsb("`nr`*, '/'c!..")
+      res = sma("{`nr`times, '/'c ! ..}")
     }
 
     rest_path = path.s[-(1:(index-1))]
 
     nr = length(rest_path)
     if(nr > 0){
-      res = .dsb(".['char>0'if('|/'a) ? res].['/'c ? rest_path]")
-      # New version string.ops:
-      #     .cub("{@('|/'a) ? res}{'/'c ? res_path}")
-      #     .cub("{@('/'ar) ? res}{'/'c ? res_path}")
-      # ar: append right, al: append left
-      #     .cub("{~res != '';/}{'/'c ? res_path}")
-
+      res = sma("{if(.nchar > 0; '/'append.right) ? res}{'/'c ? rest_path}")
     }
 
     res_all[i] = res
@@ -2215,6 +2213,7 @@ get_op = function(expr){
 ####
 #### R/W funs ####
 ####
+
 
 rw_funs = list(
   # source
