@@ -1005,7 +1005,7 @@ capture_print_msg = function(expr){
 write_output_in_doc = function(comment){
   # Writes the output of the console into the document containing the code
 
-    if(!comment) return()
+  if(!comment) return()
 
   TEXT_MODIF = getOption("rmake_TEXT_MODIF")
 
