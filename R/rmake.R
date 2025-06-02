@@ -63,7 +63,15 @@
 ####
 
 
-rmake = function(hard = FALSE, comment = FALSE){
+rmake = function(hard = FALSE, comment = FALSE, project = NULL){
+  
+  if(is.null(project)){
+    project = getOption("rmake_root_path_origin")
+  } else {
+    check_arg(project, "read path dir")
+  }
+  
+  options(rmake_root_path = project)
 
   if(hard){
     rm_file(root_path(".rmake/rmake.RData"))
@@ -71,7 +79,7 @@ rmake = function(hard = FALSE, comment = FALSE){
 
   # BEWARE: use here to find the root path
   # Go into the folders too.
-  files = list.files(pattern = "\\.(r|R)$", full.names = TRUE)
+  files = list.files(project, pattern = "\\.(r|R)$", full.names = TRUE)
   files = gsub("^\\./", "", files)
 
   # .Rprofile
@@ -79,7 +87,7 @@ rmake = function(hard = FALSE, comment = FALSE){
   pkgs = NULL
   fun_list = list()
   
-  if(file_exists(root_path(".Rprofile"))){
+  if(file.exists(root_path(".Rprofile"))){
     # the profile is ALWAYS evaluated
     prof_text = readLines(root_path(".Rprofile"))
     pkgs = find_packages(prof_text)
@@ -91,12 +99,6 @@ rmake = function(hard = FALSE, comment = FALSE){
 
   all_chunks = list()
   for(f in files){
-    # text = readLines(f)
-    # if(any(grepl("^#.*rmake: on", head(text, 20)))){
-    #   file_chunks = create_chunks(text, fun_list, env_rprofile, pkgs, filename = f)
-    #   nm = paste0(f, "$", names(file_chunks))
-    #   all_chunks[nm] = file_chunks
-    # }
     file_chunks = create_chunks(f, fun_list, env_rprofile, pkgs)
     if(!is.null(file_chunks)){
       nm = paste0(f, "$", names(file_chunks))
@@ -267,7 +269,7 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
     cause_fmt = gsub("^TRUE$", "X", cause_fmt)
     cause_fmt = gsub("^FALSE$", "", cause_fmt)
 
-    message("The following chunk", plural(nrow(cause_fmt), "s.need"), " to be run:")
+    mema("The following chunk{#s, need ? nrow(cause_fmt)} to be run:")
 
     cause_fmt = rbind(colnames(cause_fmt), cause_fmt)
 
@@ -335,7 +337,7 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
   on.exit({
     write_output_in_doc(comment)
     if(getOption("width") == 80) options(width = width_origin)
-    })
+  })
 
   options(width = 80)
 
@@ -345,7 +347,6 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
   # the data is strongly formatted, no error possible
   info_all$filenames = sapply(all_chunks, `[[`, "filename")
   info_all$id_sec    = sapply(all_chunks, `[[`, "id_sec")
-  info_all$id_subsec = sapply(all_chunks, `[[`, "id_subsec")
 
   # 2) we update
   IS_ERROR = FALSE
@@ -358,7 +359,7 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
     candidates = which(n_dep == 0 & !chunk_up_to_date)
     if(length(candidates) == 0){
       # LATER: detail which
-      stop("There exists circular dependencies in your code.")
+      stop("There exists circular dependencies in your code.\nWIP: tell which")
     }
 
     for(i in candidates){
@@ -417,11 +418,11 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
 
   if(IS_ERROR){
 
-    if(requireNamespace("rstudioapi", quietly = TRUE)){
-      f = gsub(".+in file : ([^\n]+)\n.+", "\\1", error_msg)
-      line = as.numeric(gsub(".+at line : (\\d+)\n.+", "\\1", error_msg))
-      rstudioapi::navigateToFile(f, line = line)
-    }
+    # if(requireNamespace("rstudioapi", quietly = TRUE)){
+    #   f = gsub(".+in file : ([^\n]+)\n.+", "\\1", error_msg)
+    #   line = as.numeric(gsub(".+at line : (\\d+)\n.+", "\\1", error_msg))
+    #   rstudioapi::navigateToFile(f, line = line)
+    # }
 
     stop_up(error_msg)
   }
@@ -434,50 +435,17 @@ run_chunk = function(all_chunks, id_chunk, env_list, info_all){
 
   filenames = info_all$filenames
   id_sec = info_all$id_sec
-  id_subsec = info_all$id_subsec
 
   chunk = all_chunks[[id_chunk]]
   sec = chunk$id_sec
-  subsec = chunk$id_subsec
   f = chunk$filename
 
   #
   # preparing the environment
   #
-
-  if(sec == 0){
-    # This is the init of the file
-    env = new.env(parent = env_list$RPROFILE)
-  } else {
-    id_init = which(filenames == f & id_sec == 0)
-    init = all_chunks[[id_init]]
-    if(!init$NAME %in% names(env_list)){
-      info_eval = run_chunk(all_chunks, id_init, env_list, info_all)
-      env_list = info_eval$env_list
-      all_chunks = info_eval$all_chunks
-    }
-
-    env_init = env_list[[init$NAME]]
-
-    if(subsec == 0){
-      # This is the preamble of the chunk (or just the main chunk
-      #   if there is no sub sections)
-      env = new.env(parent = env_init)
-    } else {
-      id_preamble = which(filenames == f & id_sec == sec & id_subsec == 0)
-      preamble = all_chunks[[id_preamble]]
-      if(!preamble$NAME %in% names(env_list)){
-        info_eval = run_chunk(all_chunks, id_preamble, env_list, info_all)
-        env_list = info_eval$env_list
-        all_chunks = info_eval$all_chunks
-      }
-
-      env_preamble = env_list[[preamble$NAME]]
-
-      env = new.env(parent = env_preamble)
-    }
-  }
-
+  
+  # This is the init of the file
+  env = new.env(parent = env_list$RPROFILE)
   env_list[[chunk$NAME]] = env
 
   if(chunk$code_n_expr == 0){
@@ -546,7 +514,7 @@ run_chunk = function(all_chunks, id_chunk, env_list, info_all){
     n_loop = length(qui_for)
     CODE_LINES_FOR[qui_for + 1 + (0:(n_loop - 1))] = paste0("INDEX_LOOP[[\"", index, "\"]] = ", index)
   }
-
+  
   #
   # Evaluation
   #
@@ -575,11 +543,6 @@ run_chunk = function(all_chunks, id_chunk, env_list, info_all){
       inside_loop = env$INSIDE_LOOP
 
       chunk_loc = paste0(" (", n_th(sec), " chunk)")
-      if(sec == 0){
-        chunk_loc = ""
-      } else if(subsec > 0){
-        chunk_loc = paste0(" (", n_th(sec), " chunk, ", n_th(subsec), " sub-section)")
-      }
 
       error_msg = c("Run failed\n",
                     " - in file : ", f, "\n",
@@ -615,29 +578,15 @@ run_chunk = function(all_chunks, id_chunk, env_list, info_all){
                     "\nAll variables are assigned to the global environment for debugging.",
                     "\n| The expression evaluated is:\n", paste0("| ", deparse_short(expr)),
                     "\n| Leading to the following error:\n", paste0("| ", output))
-
+      
+      
       #
       # We assign the variables to the global env to facilitate debugging
-      # We also load the variables from the parent environments!
-      env2load = list(env)
-      if(sec != 0){
-        nm = chunk$NAME
-        init_name = gsub("[[:digit:]]+_([[:digit:]]+)$", "00_\\1", nm, perl = TRUE)
-        env2load[[2]] = env_list[[init_name]]
-
-        if(subsec != 0){
-          preamble_name = gsub("_[[:digit:]]+$", "_00", nm, perl = TRUE)
-          env2load[[3]] = env_list[[init_name]]
-        }
-      }
-
-      for(my_env in env2load){
-        for(var in names(my_env)){
+      for(var in names(env)){
           # I can use parent.frame(n) with n = 3 + (sec > 0) + (subsec > 0)
           # if .GlobalEnv does not comply with the CRAN policies
-          assign(var, get(var, my_env), .GlobalEnv)
+          assign(var, get(var, env), .GlobalEnv)
         }
-      }
 
       # We stop only after writing in the document
     }
@@ -756,7 +705,7 @@ dependency_graph = function(all_chunks){
   }
 
   # Normalizing the names (removing project path from the names)
-  path_proj = find_project_path()
+  path_proj = getOption("rmake_root_path")
   all_names = gsub(path_proj, "~", all_names, fixed = TRUE)
 
   # Extracting the dependencies from the sources
@@ -767,7 +716,10 @@ dependency_graph = function(all_chunks){
   for(src in source_unik){
     src_dep = c(src_dep, source_dependencies(src))
   }
-  names(src_dep) = gsub("=.+", "", src_dep)
+  
+  if(!is.null(src_dep)){
+    names(src_dep) = gsub("=.+", "", src_dep)
+  }
 
   n = length(input)
 
@@ -819,7 +771,7 @@ dependency_graph = function(all_chunks){
   }
 
   # Dependency: Data links
-
+  
   all_files = c(unlist(input), unlist(output))
   dict_files = sort(unique(all_files))
   dict_files = setNames(seq_along(dict_files), dict_files)
@@ -838,33 +790,7 @@ dependency_graph = function(all_chunks){
   dep_mat = tcrossprod(mat_output, mat_input)
 
   dimnames(dep_mat) = list(all_names, all_names)
-
-  # dependency: sectional
-  chunk_filename = sapply(all_chunks, function(x) x$filename)
-  chunk_id_sec = sapply(all_chunks, function(x) x$id_sec)
-  chunk_id_subsec = sapply(all_chunks, function(x) x$id_subsec)
-
-  for(f in unique(chunk_filename)){
-    id = which(chunk_filename == f)
-
-    # The main preamble
-    id_sec = chunk_id_sec[id]
-    init_id = id[id_sec == 0]
-    col_id = id[id_sec != 0]
-    if(length(init_id) == 1 && length(col_id) > 0){
-      dep_mat[cbind(init_id, col_id)] = 1
-    }
-
-    # The subsection preambles
-    id_subsec = chunk_id_subsec[id]
-    for(i in which(id_subsec != 0)){
-      j = id[i]
-      main = id[id_sec == id_sec[i] & id_subsec == 0]
-      dep_mat[main, j] = 1
-    }
-  }
-
-
+  
   res = list(dep_mat = dep_mat, all_chunks = all_chunks)
 
   res
@@ -1116,7 +1042,7 @@ extract_code_info = function(code, line_nb = 1, fun_list = NULL,
     }
 
     line_nb = get("line_nb", parent.frame())
-    line_nb = info$codelines
+    line_nb = info$parsed_codelines
     assign("line_nb", line_nb, parent.frame())
   }
 
@@ -1314,8 +1240,9 @@ extract_code_info = function(code, line_nb = 1, fun_list = NULL,
   }
 
 
-  res = list(data_input = data_input, data_output = data_output, function_depends = function_depends,
-             assigned = assigned, used = used, codelines = line_nb - 1)
+  res = list(data_input = data_input, data_output = data_output, 
+             function_depends = function_depends,
+             assigned = assigned, used = used, parsed_codelines = line_nb - 1)
 
   res
 }
@@ -1945,7 +1872,7 @@ hash_cpp_funs = function(path){
   unique(id[l_flat %in% values])
 }
 
-absolute_to_relative = function(path_all, origin = find_project_path()){
+absolute_to_relative = function(path_all, origin = getOption("rmake_root_path")){
   # path = normalizePath("../../C_testing/ctesting/")
   # NOTA: fs:::is_absolute_path does not consider ./image/etc or ../images/etc as relative...
   # ONLY /images/etc is OK or images/etc

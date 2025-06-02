@@ -617,8 +617,8 @@ Rcpp::List cpp_create_chunks(SEXP R_path){
         res.push_back(Rcpp::List::create(
           Rcpp::Named("title") = current_chunk_title,
           Rcpp::Named("text") = current_chunk,
-          Rcpp::Named("lise_start") = line_start,
-          Rcpp::Named("lise_end") = i - 1
+          Rcpp::Named("line_start") = line_start,
+          Rcpp::Named("line_end") = i - 1
         ));
         current_chunk.clear();
       }
@@ -642,8 +642,8 @@ Rcpp::List cpp_create_chunks(SEXP R_path){
     res.push_back(Rcpp::List::create(
       Rcpp::Named("title") = current_chunk_title,
       Rcpp::Named("text") = current_chunk,
-      Rcpp::Named("lise_start") = line_start,
-      Rcpp::Named("lise_end") = i
+      Rcpp::Named("line_start") = line_start,
+      Rcpp::Named("line_end") = i
     ));
   }
   

@@ -38,6 +38,7 @@ setup_root_path = function(){
   path = find_project_path(TRUE)
   
   options(rmake_root_path = path)
+  options(rmake_root_path_origin = path)
 }
 
 find_project_path = function(force = FALSE){
