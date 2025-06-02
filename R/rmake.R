@@ -91,9 +91,14 @@ rmake = function(hard = FALSE, comment = FALSE){
 
   all_chunks = list()
   for(f in files){
-    text = readLines(f)
-    if(any(grepl("^#.*rmake: on", head(text, 20)))){
-      file_chunks = create_chunks(text, fun_list, env_rprofile, pkgs, filename = f)
+    # text = readLines(f)
+    # if(any(grepl("^#.*rmake: on", head(text, 20)))){
+    #   file_chunks = create_chunks(text, fun_list, env_rprofile, pkgs, filename = f)
+    #   nm = paste0(f, "$", names(file_chunks))
+    #   all_chunks[nm] = file_chunks
+    # }
+    file_chunks = create_chunks(f, fun_list, env_rprofile, pkgs)
+    if(!is.null(file_chunks)){
       nm = paste0(f, "$", names(file_chunks))
       all_chunks[nm] = file_chunks
     }
@@ -868,7 +873,7 @@ dependency_graph = function(all_chunks){
 
 
 
-create_chunks = function(text, fun_list = list(), env, pkg_all = NULL, filename = NULL){
+create_chunks_old = function(text, fun_list = list(), env, pkg_all = NULL, filename = NULL){
 
   subsection_id = which(grepl("^####? [^#]+####\\s*", text))
 
@@ -980,7 +985,58 @@ create_chunks = function(text, fun_list = list(), env, pkg_all = NULL, filename 
 }
 
 
+create_chunks = function(path, fun_list = list(), env, pkg_all = NULL){
+  
+  all_chunks = cpp_create_chunks(path)
+  
+  n_sec = length(all_chunks)
+  
+  if(n_sec == 0){
+    return(NULL)
+  }
+  
+  filename_rel = absolute_to_relative(path)
 
+  res = list()
+
+  for(i in 1:n_sec){
+    
+    section = all_chunks[[i]]
+
+    sec_text = section$text
+
+    # We gather the sources in a section specific way.
+    fun_list_sec = extract_source_functions(sec_text, fun_list, env, pkg_all)
+    sec_text = sec_text[!grepl("\\bsource(Cpp)?\\(", sec_text)]
+
+    # DEV: add precise information when the code cannot be parsed
+    # - file of the problm + chunk name
+    # - line number at which there is a problem
+
+    code = parse(text = sec_text, keep.source = FALSE)
+
+    sec_parsed = extract_code_info(code, line_nb = 1, fun_list = fun_list_sec, env = env,
+                                   extra_code_char = NULL, pkg_all = pkg_all)
+
+    sec_parsed$filename = filename_rel
+    sec_parsed$code_hash = cpp_hash_string(paste(trimws(deparse(code, width.cutoff = 500)), collapse = ""))
+    sec_parsed$code_lines = c(section$line_start, section$line_end)
+    sec_parsed$code_text = sec_text
+    sec_parsed$code_n_expr = length(code)
+    sec_parsed$id_sec = i
+    sec_parsed$NAME = paste0(filename_rel, "@", sprintf("%02i", i))
+    sec_parsed$chunk_name = section$title
+    sec_parsed$chunk_name_long = paste0(sec_parsed$NAME, ": ", section$title)
+
+    nm = sma("{%02i ? i}_{section$title}")
+
+    res[[nm]] = sec_parsed
+
+  }
+
+  return(res)
+
+}
 
 
 ####
@@ -2031,6 +2087,10 @@ get_fun_hash = function(x){
 
 
 find_packages = function(text){
+  #
+  # How do we do:
+  # we mask the library/require/p_load functions
+  # and evaluate with the new functions
 
   # 1) we fetch the valid lines of code
   code_line_info = cpp_valid_code_index(text)

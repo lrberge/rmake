@@ -541,6 +541,12 @@ inline bool is_chunk_line(std::string line, bool &is_ignore, std::string &chunk_
     }
     
     size_t i_start = i + 1;
+    
+    while(i_start < n && line[i_start] == ' '){
+      ++i_start;
+    }
+    
+    
     chunk_title.clear();
     for(size_t i = i_start ; i <= i_end ; ++i){
       chunk_title += line[i];
@@ -560,6 +566,13 @@ inline bool is_chunk_line(std::string line, bool &is_ignore, std::string &chunk_
 
 // [[Rcpp::export]]
 Rcpp::List cpp_create_chunks(SEXP R_path){
+  // returns a list, len(list) = number of tracked sections
+  // each section contains:
+  // - title
+  // - code_text
+  // - line_start
+  // - line_end
+  // 
   
   if(TYPEOF(R_path) != STRSXP){
     Rcpp::stop("cpp_create_chunks: The argument `R_path` must be a character scalar. Currently the type is wrong.");
@@ -591,19 +604,29 @@ Rcpp::List cpp_create_chunks(SEXP R_path){
   
   bool in_chunk = false;
   bool is_ignore = false;
+  int line_start = 0;
+  int i = 0; // line index, in R indexing
   std::string line;
   while(std::getline(file_in, line)){
+    ++i;
     
     if(is_chunk_line(line, is_ignore, new_chunk_title)){
+      
       // we save the previous chunk
-      if(in_chunk){
-        res.push_back(current_chunk, current_chunk_title);
+      if(in_chunk && !current_chunk.empty()){
+        res.push_back(Rcpp::List::create(
+          Rcpp::Named("title") = current_chunk_title,
+          Rcpp::Named("text") = current_chunk,
+          Rcpp::Named("lise_start") = line_start,
+          Rcpp::Named("lise_end") = i - 1
+        ));
         current_chunk.clear();
       }
       
       if(is_ignore){
         in_chunk = false;
       } else {
+        line_start = i + 1;
         in_chunk = true;
         current_chunk_title = new_chunk_title;
       }
@@ -615,8 +638,13 @@ Rcpp::List cpp_create_chunks(SEXP R_path){
     
   }
   
-  if(in_chunk){
-    res.push_back(current_chunk, current_chunk_title);
+  if(in_chunk && !current_chunk.empty()){
+    res.push_back(Rcpp::List::create(
+      Rcpp::Named("title") = current_chunk_title,
+      Rcpp::Named("text") = current_chunk,
+      Rcpp::Named("lise_start") = line_start,
+      Rcpp::Named("lise_end") = i
+    ));
   }
   
   
