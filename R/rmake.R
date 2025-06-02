@@ -69,6 +69,9 @@ rmake = function(hard = FALSE, comment = FALSE, project = NULL){
     project = getOption("rmake_root_path_origin")
   } else {
     check_arg(project, "read path dir")
+    on.exit(setwd(getOption("rmake_root_path_origin")))
+    project = normalizePath(project, "/")
+    setwd(project)
   }
   
   options(rmake_root_path = project)
@@ -79,7 +82,7 @@ rmake = function(hard = FALSE, comment = FALSE, project = NULL){
 
   # BEWARE: use here to find the root path
   # Go into the folders too.
-  files = list.files(project, pattern = "\\.(r|R)$", full.names = TRUE)
+  files = list.files(project, pattern = "\\.(r|R)$", full.names = TRUE, recursive = TRUE)
   files = gsub("^\\./", "", files)
 
   # .Rprofile
@@ -87,6 +90,7 @@ rmake = function(hard = FALSE, comment = FALSE, project = NULL){
   pkgs = NULL
   fun_list = list()
   
+  browser()
   if(file.exists(root_path(".Rprofile"))){
     # the profile is ALWAYS evaluated
     prof_text = readLines(root_path(".Rprofile"))
@@ -1187,7 +1191,9 @@ extract_code_info = function(code, line_nb = 1, fun_list = NULL,
         code_char_new = code_char
         vars = get_vars_dsb(data_i$path_call)
         pattern = paste0("[^\n]*\\Q", pat, "\\E")
-        code_char_new[[line_id]] = gsub(pattern, paste0("TARGET__ = ", paste(vars, collapse = " + "), " + END_TARGET__()"),
+        code_char_new[[line_id]] = gsub(pattern, paste0("TARGET__ = ", 
+                                                        paste(vars, collapse = " + "), 
+                                                        " + END_TARGET__()"),
                                         code_char_new[[line_id]], perl = TRUE)
 
         code_new = parse(text = code_char_new, keep.source = FALSE)
@@ -1430,7 +1436,9 @@ extract_source_functions = function(code_text, fun_list = list(), env,
                                     pkgs_in = NULL, names_hash = FALSE){
 
   check_arg(code_text, "character vector no na")
-
+  
+  browser()
+  
   # recursivity counter + check
   n_rec = attr(code_text, "n_rec")
   if(is.null(n_rec)){
@@ -1438,9 +1446,10 @@ extract_source_functions = function(code_text, fun_list = list(), env,
   } else {
     n_rec = n_rec + 1
   }
+  
   if(n_rec == 5){
     stop("In the current set of source files we have source() calling other source()",
-         " recursively for at least 5 times. This is not allowed in automake, please revise the code.")
+         " recursively for at least 5 times. This is not allowed in rmake, please revise the code.")
   }
 
   # we remove comments
