@@ -21,3 +21,7 @@ cpp_absolute_to_relative <- function(R_paths, R_root) {
     .Call(`_rmake_cpp_absolute_to_relative`, R_paths, R_root)
 }
 
+cpp_create_chunks <- function(R_path) {
+    .Call(`_rmake_cpp_create_chunks`, R_path)
+}
+

@@ -4,8 +4,13 @@
 #include <stdio.h>
 #include <cmath>
 #include <functional>
+#include <string>
+#include <filesystem>
+#include <fstream>
 
 using namespace Rcpp;
+
+namespace fs = std::filesystem;
 
 char table_digit_letter[37] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -479,6 +484,144 @@ SEXP cpp_absolute_to_relative(SEXP R_paths, SEXP R_root){
 }
 
 
+inline bool is_chunk_line(std::string line, bool &is_ignore, std::string &chunk_title){
+  
+  if(line.size() < 6 || line[0] != '#'){
+    return false;
+  }
+  
+  const size_t n = line.size();
+  
+  //
+  // does it end with "####"?
+  //
+  
+  size_t i = n - 1;
+  while(i >= 0 && line[i] == ' '){
+    --i;
+  }
+  
+  if(i < 5 || line.back() != '#'){
+    return false;
+  }
+  
+  for(size_t offset = 1 ; offset <= 3 ; ++offset){
+    if(line[i - offset] != '#'){
+      return false;
+    }
+  }
+  
+  size_t i_end = i - 4;
+  
+  //
+  // does it start with "# =" or "# !="?
+  //
+  
+  i = 1;
+  // trim #
+  while(i < n && line[i] == '#'){
+    ++i;
+  }
+  
+  // trim spaces
+  while(i < n && line[i] == ' '){
+    ++i;
+  }
+  
+  if(i == n){
+    return false;
+  }
+  
+  if(line[i] == '='){
+    is_ignore = false;
+    
+    // saving the chunk title, note that empty titles are valid
+    while(i_end >= 0 && (line[i_end] == '#' || line[i_end] == ' ')){
+      --i_end;
+    }
+    
+    size_t i_start = i + 1;
+    chunk_title.clear();
+    for(size_t i = i_start ; i <= i_end ; ++i){
+      chunk_title += line[i];
+    }
+    
+    return true;
+    
+  } else if(line[i] == '!' && line[i + 1] == '='){
+    is_ignore = true;
+    return true;
+    
+  }
+  
+  return false;
+  
+}
 
-
+// [[Rcpp::export]]
+Rcpp::List cpp_create_chunks(SEXP R_path){
+  
+  if(TYPEOF(R_path) != STRSXP){
+    Rcpp::stop("cpp_create_chunks: The argument `R_path` must be a character scalar. Currently the type is wrong.");
+  }
+  
+  std::string path_str = Rf_translateCharUTF8(STRING_ELT(R_path, 0));
+  
+  fs::path path = path_str;
+  
+  if(!fs::exists(path)){
+    Rcpp::stop("cpp_create_chunks: You must provide an existing path. The following path does not exist:\n" + path_str);
+  }
+  
+  std::ifstream file_in(path);
+  
+  Rcpp::List res;
+  
+  if(!file_in.is_open()){
+    return res;
+  }
+  
+  // Implementation notes:
+  // - we do not handle the case where "# = ####" is placed within a string
+  // => later I should catch this case
+  
+  std::vector<std::string> current_chunk;
+  std::string current_chunk_title;
+  std::string new_chunk_title;
+  
+  bool in_chunk = false;
+  bool is_ignore = false;
+  std::string line;
+  while(std::getline(file_in, line)){
+    
+    if(is_chunk_line(line, is_ignore, new_chunk_title)){
+      // we save the previous chunk
+      if(in_chunk){
+        res.push_back(current_chunk, current_chunk_title);
+        current_chunk.clear();
+      }
+      
+      if(is_ignore){
+        in_chunk = false;
+      } else {
+        in_chunk = true;
+        current_chunk_title = new_chunk_title;
+      }
+      
+    } else if(in_chunk){
+      current_chunk.push_back(line);
+      
+    }
+    
+  }
+  
+  if(in_chunk){
+    res.push_back(current_chunk, current_chunk_title);
+  }
+  
+  
+  file_in.close();
+  
+  return res;
+}
 

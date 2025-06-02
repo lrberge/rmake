@@ -1931,7 +1931,6 @@ absolute_to_relative = function(path_all, origin = find_project_path()){
     res = ""
     nr = length(rest_wd)
     if(nr > 0){
-      # res = dsb("`nr`*, '/'c!..")
       res = sma("{`nr`times, '/'c ! ..}")
     }
 

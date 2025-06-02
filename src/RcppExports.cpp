@@ -67,6 +67,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_create_chunks
+Rcpp::List cpp_create_chunks(SEXP R_path);
+RcppExport SEXP _rmake_cpp_create_chunks(SEXP R_pathSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type R_path(R_pathSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_create_chunks(R_path));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rmake_cpp_hash_string", (DL_FUNC) &_rmake_cpp_hash_string, 1},
@@ -74,6 +85,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rmake_cpp_clean_comments", (DL_FUNC) &_rmake_cpp_clean_comments, 1},
     {"_rmake_cpp_valid_code_index", (DL_FUNC) &_rmake_cpp_valid_code_index, 1},
     {"_rmake_cpp_absolute_to_relative", (DL_FUNC) &_rmake_cpp_absolute_to_relative, 2},
+    {"_rmake_cpp_create_chunks", (DL_FUNC) &_rmake_cpp_create_chunks, 1},
     {NULL, NULL, 0}
 };
 
