@@ -106,6 +106,7 @@ rmake = function(hard = FALSE, comment = FALSE, project = NULL){
     assign("library", mock_library, envir = env_rprofile)
     assign("require", mock_require, envir = env_rprofile)
     assign("source",  mock_source,  envir = env_rprofile)
+    assign("sourceCpp",  mock_sourceCpp,  envir = env_rprofile)
     
     eval(prof_code, env_rprofile)
     
@@ -251,6 +252,8 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
     info_cause[i, 2:5] = c(is_diff_code, is_diff_fundep, is_diff_input, is_diff_output)
 
   }
+  
+  browser()
 
   # we look at the dependencies: so that one chunk that is rerun can lead to many reruns
   chunk_rerun = which(!chunk_up_to_date)
@@ -343,7 +346,6 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
   message("FIX THE DEPENDENCY PROBLEM")
   # I need to create a prior full dependency + up-to-date diagnostic
   # I will use it to report and that will be more accurate.
-
 
   # This is to write the output directly in the document
   # we use a kind of global variable.

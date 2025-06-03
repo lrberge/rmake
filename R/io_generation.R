@@ -82,7 +82,7 @@ reset_loaded_packages = function(){
 }
 
 get_loaded_packages = function(){
-  getOption("rmake_loaded_pkg")
+  unique(getOption("rmake_loaded_pkg"))
 }
 
 reset_loaded_sources = function(){
@@ -90,7 +90,7 @@ reset_loaded_sources = function(){
 }
 
 get_loaded_sources = function(){
-  getOption("rmake_loaded_sources")
+  unique(getOption("rmake_loaded_sources"))
 }
 
 mock_library = function(package, ..., character.only = FALSE){
@@ -124,3 +124,10 @@ mock_source = function(file, ...){
   source(file, ...)
 }
 
+
+mock_sourceCpp = function(file, ...){
+  
+  options(rmake_loaded_sources = append(getOption("rmake_loaded_sources"), file))
+  
+  Rcpp::sourceCpp(file, ...)
+}
