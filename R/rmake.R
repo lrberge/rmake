@@ -1963,20 +1963,99 @@ absolute_to_relative = function(path_all, origin = getOption("rmake_root_path"))
   res_all
 }
 
-
-
-
 is_write_fun = function(line){
   all_funs = setdiff(all.vars(line, functions = TRUE), all.vars(line))
-
-  any(names(write_funs) %in% all_funs)
+  
+  if(any(names(write_funs) %in% all_funs)){
+    return(TRUE)
+  }
+  
+  # we consider a function to be an input if:
+  # - **no assignment**
+  # - it has an argument path or file
+  
+  if(length(line) == 3 && is_operator(line, c("=", "<-"))){
+    return(FALSE)
+  }
+  
+  if(has_path_argument(line)){
+    return(TRUE)
+  }
+  
+  return(FALSE)
 }
 
 is_read_fun = function(line){
-
+  
   all_funs = setdiff(all.vars(line, functions = TRUE), all.vars(line))
+  
+  if(any(names(read_funs) %in% all_funs)){
+    return(TRUE)
+  }
+  
+  # we consider a function to be an input if:
+  # - it assigns to a variable
+  # - it has an argument path or file
+  
+  if(length(line) == 3 && is_operator(line, c("=", "<-"))){
+    rhs = line[[3]]
+    if(has_path_argument(rhs)){
+      return(TRUE)
+    }
+  }
+  
+  return(FALSE)
+}
 
-  any(names(read_funs) %in% all_funs)
+has_path_argument = function(expr){
+  
+  # limitations:
+  # - does not handle:
+  #   x = base::read.csv(path)
+  #   because of `base::`
+  # - does not handle piping:
+  #   x = path |> read.csv()
+  
+  # add recursivity????
+  
+  if(length(expr) >= 2){
+    
+    # case 1: path given explicitly
+    
+    if(any(c("path", "file") %in% names(expr))){
+      return(TRUE)
+    }
+    
+    # case 2: positional
+    
+    fun_text = as.character(expr[[1]])
+    if(length(fun_text) == 1){
+      if(exists(fun_text, mode = "function")){
+        
+        args_raw = args(fun_text)
+        
+        if(is.null(args_raw)){
+          return(FALSE)
+        }
+        
+        all_args = names(formals(args_raw))
+        
+        if("..." %in% all_args){
+          # we remove everything after ... since they need to be called explicitly
+          i = which(all_args == "...")
+          if(i > 1){
+            all_args = all_args[1:(i - 1)]
+          } else {
+            all_args = NULL
+          }
+        }
+        
+        return(any(c("path", "file") %in% all_args))
+      }
+    }
+  }
+  
+  return(FALSE)
 }
 
 get_args = function(...){
@@ -1988,7 +2067,9 @@ extract_rw_path = function(line, read = FALSE, write = FALSE,
                            env = new.env(parent = .GlobalEnv)){
   # line is a call
 
-  if(!read && !write) stop("You mut provide either the argument 'read' or the argument 'write'.")
+  if(!read && !write){
+    stop("You mut provide either the argument 'read' or the argument 'write'.")
+  }
 
   all_funs = setdiff(all.vars(line, functions = TRUE), all.vars(line))
 
@@ -1996,18 +2077,69 @@ extract_rw_path = function(line, read = FALSE, write = FALSE,
 
   fun_name = intersect(names(rw_funs), all_funs)
 
-  if(length(fun_name) > 1) stop("Internal error: Several ", if(read) "reading" else "writing", " functions in a same line were found => revise code.")
-
-  if(length(fun_name) == 0) stop("Internal error: No ", if(read) "reading" else "writing", " function was found => revise code.")
-
-  fun = cpp_extract_fun(deparse_long(line), fun_name)
-
-  if(grepl("^__", fun)){
-    stop("Internal error: the ", if(read) "reading" else "writing",
-         " function could not be extracted (", fun, ") => revise code.")
+  if(length(fun_name) > 1){
+    stopi("Internal error: Several {&read ; reading ; writing} functions in a same line were found => revise code. WIP improve this message")
   }
 
-  fun_call = str2lang(fun)
+  if(length(fun_name) == 0){
+    # stop("Internal error: No ", if(read) "reading" else "writing", " function was found => revise code.")
+    
+    # this is not a builtin function, we extract it
+    if(read){
+      # we remove the assignment
+      fun_call = line[[3]]
+    } else {
+      fun_call = line
+    }
+    
+    # we create the mock function
+    fun_name = as.character(fun_call[[1]])
+    args_used = names(fun_call)
+    found = FALSE
+    if(!is.null(args_used)){
+      i = which(args_used %in% c("path", "file"))
+      if(length(i) > 0){
+        found = TRUE
+        fun_call = fun_call[c(1, i[1])]
+      }
+    }
+    
+    if(!found){
+      all_args = names(formals(args(fun_name)))
+      i_drop = which(args_used %in% all_args)
+      if(length(i_drop) > 0){
+        fun_call = fun_call[-i_drop]
+      }
+      
+      all_args = setdiff(all_args, args_used)
+      i = which(all_args %in% c("path", "file"))
+      
+      check_value(i, "integer scalar", .message = "internal error: multiple path/file arguments. check code")
+      
+      if(i + 1 > length(fun_call)){
+        stopi("internal error: argument path/file beyond all possible indexes")
+      }
+      
+      fun_call = fun_call[c(1, i + 1)]
+    }
+    
+    # we end up with a call to a function with a single unnamed argument
+    names(fun_call) = NULL
+    rw_funs[[fun_name]] = function(x) x
+    rw_fun_calls[[fun_name]] = function(x) match.call()$x
+    
+  } else {
+    fun = cpp_extract_fun(deparse_long(line), fun_name)
+
+    if(grepl("^__", fun)){
+      stop("Internal error: the {&read ; reading ; writing}",
+          " function could not be extracted (", fun, ") => revise code.")
+    }
+
+    fun_call = str2lang(fun)
+  }
+  
+  browser()
 
   path = try(eval(fun_call, rw_funs, env), silent = TRUE)
   path_call = eval(fun_call, rw_fun_calls)
@@ -2229,76 +2361,6 @@ get_op = function(expr){
   as.character(expr[[1]])[1]
 }
 
-####
-#### R/W funs ####
-####
-
-
-rw_funs = list(
-  # source
-  source = function(file, ...) structure(file, type = "source"),
-
-  # read
-  load = function(file, ...) structure(file, type = "read"),
-  read.csv = function(file, ...) structure(file, type = "read"),
-  readfst = function(path, ...) structure(path, type = "read"),
-  read_fst = function(path, ...) structure(path, type = "read"),
-  fread = function(input, file, text, ...){
-    if(!missing(file)) return(structure(file, type = "read"))
-    if(!missing(input) && !grepl("\n", input)) return(structure(input, type = "read"))
-    ""
-  },
-
-  # write
-  save = function(..., file) structure(file, type = "write"),
-  write_fst = function(x, path, ...) structure(path, type = "write"),
-  fwrite = function(x, file, ...) structure(file, type = "write"),
-  write.csv = function(x, file) structure(file, type = "write")
-)
-
-
-read_funs = list(
-  load = function(file, ...) file,
-  read.csv = function(file, ...) file,
-  readfst = function(path, ...) path,
-  read_fst = function(path, ...) path,
-  fread = function(input, file, text, ...){
-    if(!missing(file)) return(file)
-    if(!missing(input) && !grepl("\n", input)) return(input)
-    ""
-  }
-)
-
-
-write_funs = list(
-  save = function(..., file) file,
-  write_fst = function(x, path, ...) path,
-  fwrite = function(x, file, ...) file,
-  write.csv = function(x, file) file
-)
-
-#
-# same with calls
-#
-
-
-rw_fun_calls = list(
-  # read
-  load = function(file, ...) match.call()$file,
-  read.csv = function(file, ...) match.call()$file,
-  readfst = function(path, ...) match.call()$path,
-  read_fst = function(path, ...) match.call()$path,
-  fread = function(input, file, text, ...){
-    if(!missing(file)) return(match.call()$file)
-    if(!missing(input) && !grepl("\n", input)) return(match.call()$input)
-    ""
-  },
-  # write
-  save = function(..., file) match.call()$file,
-  write_fst = function(x, path, ...) match.call()$path,
-  fwrite = function(x, file, ...) match.call()$file,
-  write.csv = function(x, file) match.call()$file
-)
 
 
 

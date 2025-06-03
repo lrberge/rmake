@@ -131,3 +131,79 @@ mock_sourceCpp = function(file, ...){
   
   Rcpp::sourceCpp(file, ...)
 }
+
+
+####
+#### R/W funs ####
+####
+
+
+rw_funs = list(
+  # source
+  source = function(file, ...) structure(file, type = "source"),
+
+  # read
+  load = function(file, ...) structure(file, type = "read"),
+  read.csv = function(file, ...) structure(file, type = "read"),
+  readfst = function(path, ...) structure(path, type = "read"),
+  read_fst = function(path, ...) structure(path, type = "read"),
+  fread = function(input, file, text, ...){
+    if(!missing(file)) return(structure(file, type = "read"))
+    if(!missing(input) && !grepl("\n", input)) return(structure(input, type = "read"))
+    ""
+  },
+
+  # write
+  save = function(..., file) structure(file, type = "write"),
+  write_fst = function(x, path, ...) structure(path, type = "write"),
+  fwrite = function(x, file, ...) structure(file, type = "write"),
+  write.csv = function(x, file) structure(file, type = "write")
+)
+
+
+read_funs = list(
+  load = function(file, ...) file,
+  read.csv = function(file, ...) file,
+  readfst = function(path, ...) path,
+  read_fst = function(path, ...) path,
+  fread = function(input, file, text, ...){
+    if(!missing(file)) return(file)
+    if(!missing(input) && !grepl("\n", input)) return(input)
+    ""
+  }
+)
+
+
+write_funs = list(
+  save = function(..., file) file,
+  write_fst = function(x, path, ...) path,
+  fwrite = function(x, file, ...) file,
+  write.csv = function(x, file) file
+)
+
+#
+# same with calls
+#
+
+
+rw_fun_calls = list(
+  # read
+  load = function(file, ...) match.call()$file,
+  read.csv = function(file, ...) match.call()$file,
+  readfst = function(path, ...) match.call()$path,
+  read_fst = function(path, ...) match.call()$path,
+  fread = function(input, file, text, ...){
+    if(!missing(file)) return(match.call()$file)
+    if(!missing(input) && !grepl("\n", input)) return(match.call()$input)
+    ""
+  },
+  # write
+  save = function(..., file) match.call()$file,
+  write_fst = function(x, path, ...) match.call()$path,
+  fwrite = function(x, file, ...) match.call()$file,
+  write.csv = function(x, file) match.call()$file
+)
+
+
+
+

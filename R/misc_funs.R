@@ -86,6 +86,13 @@ root_path = function(path){
 
 
 
+is_operator = function(x, op){
+  if(length(x) <= 1){
+      return(FALSE)
+  }
+  
+  as.character(x[[1]])[1] %in% op
+}
 
 
 
