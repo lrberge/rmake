@@ -216,8 +216,8 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
       } else {
         if(length(qui) > 1){
           pblm = names(info)[qui]
-          warning("There exists several identical chunks... Please debug (if needed). They are:\n",
-                  paste(pblm, collapse = "\n"))
+          warni("There exists several identical chunks... Please debug (if needed). ",
+                "They are:\n{'\n'c ? pblm}")
           # we skip the chunk when it matches several
         }
 
@@ -241,9 +241,9 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
     # we save the previous run-time information
     # DEV: check everything is OK (that I don't carry on the run times forever)
     for(v in vars_copy){
-        if(!is.null(chunk_old[[v]])){
-            chunk[[v]] = chunk_old[[v]]
-        }
+      if(!is.null(chunk_old[[v]])){
+        chunk[[v]] = chunk_old[[v]]
+      }
     }
 
     all_chunks[[var]] = chunk
@@ -253,18 +253,20 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
 
   }
   
-  browser()
-
   # we look at the dependencies: so that one chunk that is rerun can lead to many reruns
   chunk_rerun = which(!chunk_up_to_date)
-  chunk_rerun_indirect = next_chunks = chunk_rerun
+  all_chunks_run = chunk_rerun
+  chunk_rerun_indirect = c()
+  next_chunks = chunk_rerun
   while(length(next_chunks) > 0){
     next_chunks = which(colSums(dep_mat[next_chunks, , drop = FALSE]) > 0)
-    chunk_rerun_indirect = c(chunk_rerun_indirect, next_chunks)
-    next_chunks = setdiff(next_chunks, chunk_rerun_indirect)
+    
+    if(length(next_chunks) > 0){
+      all_chunks_run = c(all_chunks_run, next_chunks)
+      chunk_rerun_indirect = c(chunk_rerun_indirect, next_chunks)
+    }
   }
 
-  chunk_rerun_indirect = setdiff(chunk_rerun_indirect, chunk_rerun)
   chunk_up_to_date[chunk_rerun_indirect] = FALSE
   info_cause[chunk_rerun_indirect, 6] = TRUE
 
@@ -277,11 +279,11 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
   verbose = TRUE
   if(all(chunk_up_to_date)){
 
-      if(verbose){
-          message("All code chunks are up to date.")
-      }
+    if(verbose){
+      message("All code chunks are up to date.")
+    }
 
-      return(invisible(NULL))
+    return(invisible(NULL))
   }
 
   if(TRUE){
@@ -338,14 +340,6 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
   for(i in which(chunk_up_to_date)){
     update_mat[i, ] = 0
   }
-
-  # ATTENTION:
-  # A -> B -> C, with "->" representing a dependency
-  # you can have B u2d and C u2d
-  # but if A is run, that will change B so you'll have to run it
-  message("FIX THE DEPENDENCY PROBLEM")
-  # I need to create a prior full dependency + up-to-date diagnostic
-  # I will use it to report and that will be more accurate.
 
   # This is to write the output directly in the document
   # we use a kind of global variable.
@@ -2138,8 +2132,6 @@ extract_rw_path = function(line, read = FALSE, write = FALSE,
 
     fun_call = str2lang(fun)
   }
-  
-  browser()
 
   path = try(eval(fun_call, rw_funs, env), silent = TRUE)
   path_call = eval(fun_call, rw_fun_calls)
