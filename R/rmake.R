@@ -90,17 +90,31 @@ rmake = function(hard = FALSE, comment = FALSE, project = NULL){
   pkgs = NULL
   fun_list = list()
   
-  browser()
   if(file.exists(root_path(".Rprofile"))){
     # the profile is ALWAYS evaluated
     prof_text = readLines(root_path(".Rprofile"))
-    pkgs = find_packages(prof_text)
+    
+    # we run the code to get the packages and source'd functions
+    # => this way we can catch nested calls and not only plain 
+    # library(haha) or source(path)
+    # calls
+    reset_loaded_packages()
+    reset_loaded_sources()
+    
     prof_code = try(parse(text = prof_text, keep.source = FALSE))
+    
+    assign("library", mock_library, envir = env_rprofile)
+    assign("require", mock_require, envir = env_rprofile)
+    assign("source",  mock_source,  envir = env_rprofile)
+    
     eval(prof_code, env_rprofile)
-
-    fun_list = extract_source_functions(prof_text, env = env_rprofile, pkgs_in = pkgs)
+    
+    pkgs = get_loaded_packages()
+    source_paths = get_loaded_sources()
+    
+    fun_list = extract_source_functions_from_path(source_paths)
   }
-
+  
   all_chunks = list()
   for(f in files){
     file_chunks = create_chunks(f, fun_list, env_rprofile, pkgs)
@@ -1431,13 +1445,20 @@ crawl_for_vars = function(code, vars){
   res
 }
 
+extract_source_functions_from_path = function(all_paths, fun_list = list(), 
+                                              names_hash = FALSE){
+  
+  for(path in all_paths){
+    fun_list[[path]] = funs_from_source(path, names_hash = names_hash)
+  }
+  
+  fun_list
+}
 
 extract_source_functions = function(code_text, fun_list = list(), env,
                                     pkgs_in = NULL, names_hash = FALSE){
 
   check_arg(code_text, "character vector no na")
-  
-  browser()
   
   # recursivity counter + check
   n_rec = attr(code_text, "n_rec")
@@ -1564,7 +1585,7 @@ funs_from_source = function(path, names_hash = FALSE){
     cpp = readLines(path)
     i = which(grepl("// [[Rcpp::export]]", cpp, fixed = TRUE))
     if(length(i) == 0){
-      stop("No exported function found in ", path, ". Please add at least one function.")
+      warni("No exported function found in {Q?path}. Please add at least one function.")
     }
 
     fun_names_raw = cpp[i + 1]
@@ -1576,7 +1597,8 @@ funs_from_source = function(path, names_hash = FALSE){
     }
 
   } else {
-    stop("Internal error: could not extract functions from that source: ", path, ".\nPlease revise code to enable it.")
+    stopi("Internal error: could not extract functions from that source:\n ", 
+          "{Q?path}\nPlease revise code to enable it.")
   }
 
   res

@@ -77,7 +77,50 @@ list_flatten = function(x){
 }
 
 
+reset_loaded_packages = function(){
+  options("rmake_loaded_pkg" = NULL)
+}
+
+get_loaded_packages = function(){
+  getOption("rmake_loaded_pkg")
+}
+
+reset_loaded_sources = function(){
+  options("rmake_loaded_sources" = NULL)
+}
+
+get_loaded_sources = function(){
+  getOption("rmake_loaded_sources")
+}
+
+mock_library = function(package, ..., character.only = FALSE){
+  
+  if(!character.only){
+    package = deparse(substitute(package))
+  }
+  
+  options(rmake_loaded_pkg = append(getOption("rmake_loaded_pkg"), package))
+  
+  library(package, character.only = TRUE, ...)
+}
 
 
+mock_require = function(package, ..., character.only = FALSE){
+  
+  if(!character.only){
+    package = deparse(substitute(package))
+  }
+  
+  options(rmake_loaded_pkg = append(getOption("rmake_loaded_pkg"), package))
+  
+  require(package, character.only = TRUE, ...)
+}
 
+
+mock_source = function(file, ...){
+  
+  options(rmake_loaded_sources = append(getOption("rmake_loaded_sources"), file))
+  
+  source(file, ...)
+}
 
