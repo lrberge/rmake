@@ -94,6 +94,11 @@ rmake = function(hard = FALSE, comment = FALSE, project = NULL){
     # the profile is ALWAYS evaluated
     prof_text = readLines(root_path(".Rprofile"))
     
+    # we remove the `base::` or `Rcpp::` before the packages/source
+    prof_text = string_clean(prof_text, 
+                             "base::(library|require|source) => \\1",
+                             "Rcpp::(?=sourceCpp)")
+    
     # we run the code to get the packages and source'd functions
     # => this way we can catch nested calls and not only plain 
     # library(haha) or source(path)
@@ -105,8 +110,8 @@ rmake = function(hard = FALSE, comment = FALSE, project = NULL){
     
     assign("library", mock_library, envir = env_rprofile)
     assign("require", mock_require, envir = env_rprofile)
-    assign("source",  mock_source,  envir = env_rprofile)
-    assign("sourceCpp",  mock_sourceCpp,  envir = env_rprofile)
+    assign("source", mock_source, envir = env_rprofile)
+    assign("sourceCpp", mock_sourceCpp, envir = env_rprofile)
     
     eval(prof_code, env_rprofile)
     
