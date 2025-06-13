@@ -303,13 +303,10 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE, ask = TR
   if(!dir.exists(root_path(".rmake"))){
     dir.create(root_path(".rmake"))
   }
-
-  new = TRUE
+  
   if(file.exists(root_path(".rmake/rmake.rds"))){
     info = readRDS(root_path(".rmake/rmake.rds"))
-  }
-
-  if(new){
+  } else {
     info = list()
   }
 
