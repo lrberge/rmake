@@ -1,6 +1,17 @@
 useDynLib(rmake, .registration = TRUE)
 
+#
+# exports
+#
+
 export(rmake)
+export(rmake_path_dependencies)
+
+
+#
+# imports
+#
+
 
 import(dreamerr)
 import(stringmagic)

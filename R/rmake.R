@@ -107,7 +107,7 @@
 #' 
 #' 
 #' 
-rmake = function(hard = FALSE, comment = FALSE, project = NULL){
+rmake = function(hard = FALSE, comment = FALSE, project = NULL, dry = FALSE){
   
   if(is.null(project)){
     project = getOption("rmake_root_path_origin")
@@ -179,6 +179,10 @@ rmake = function(hard = FALSE, comment = FALSE, project = NULL){
   # directed graph of dependencies
   # vector of whether the files are up-to-date or not
   # Throw error if loops in the graph
+  
+  if(dry){
+    return(dep_graph)
+  }
 
   all_chunks = dep_graph$all_chunks
   dep_mat = dep_graph$dep_mat
@@ -187,6 +191,32 @@ rmake = function(hard = FALSE, comment = FALSE, project = NULL){
            env_rprofile = env_rprofile, comment = comment)
 
 }
+
+
+path_list_to_vector = function(x){
+  res = c()
+  for(path_info in x){
+    if(!is.null(path_info$path)){
+      res = c(res, path_info$path)
+    }
+  }
+  
+  res
+}
+
+rmake_path_dependencies = function(project = NULL){
+  info = rmake(project = project, dry = TRUE)
+  
+  chunks = info$all_chunks
+  
+  all_nm = sapply(chunks, function(x) sma("{x$filename}@{x$chunk_name}"), USE.NAMES = FALSE)
+  res = lapply(chunks, function(x) list(input = path_list_to_vector(x[["data_input"]]), 
+                                        output = path_list_to_vector(x[["data_output"]])))
+  names(res) = all_nm
+  
+  res
+}
+
 
 ####
 #### Core internal ####
