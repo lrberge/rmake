@@ -204,6 +204,21 @@ path_list_to_vector = function(x){
   res
 }
 
+
+#' List the path depedencies found by rmake
+#' 
+#' Use this function to display the path dependencies found by rmake across
+#' all the chunks from the project.
+#' 
+#' @inheritParams rmake
+#' 
+#' @return 
+#' It returns a list. The names of the list are the names of the code chunks in the 
+#' following format: `filename@chunkname`. Each elements of the list contains 
+#' two elements: `input` and `output`, which are both character vectors of paths.
+#' 
+#' 
+#' 
 rmake_path_dependencies = function(project = NULL){
   info = rmake(project = project, dry = TRUE)
   
