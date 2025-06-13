@@ -32,12 +32,15 @@
 #' uses as input the files that another produced as output. Typical example: one chunk for data
 #' cleaning (output `data.tsv`), another for the analysis of this data (input `data.tsv`).
 #' Second, function dependencies. All user written functions are tracked. If any of 
-#' them is modified, then all chunks that use them are re-run.
+#' them is modified, then all chunks that use them are re-run. Please have a look at the section
+#' on input/ouput detection.
 #' 
 #' `rmake` handles indirect dependencies. For example, consider three chunks A, B, and C, 
 #' and let's note a dependency with an arrow. Assume A => B => C (C depends on B which 
 #' depends on A). Then if A's code is modified `rmake` will run the chunks A, then B, then C,
 #' in that specific order.
+#' 
+#' rmake keeps track of the results in a file located at .rmake/
 #' 
 #' @section Defining a code chunks:
 #' 
@@ -73,12 +76,35 @@
 #' You need to decompose the key steps of your processing. 
 #' If two pieces of code cannot be separated, it means that they belong to the same chunk.
 #' 
+#' @section Input output auto detection:
+#' 
+#' To automatically detect inputs and outputs, `rmakes` uses a trick:
+#' - all functions with the arguments `path` or `file` whose result is not assigned is
+#' considered as `output`
+#' - all functions with the arguments `path` or `file` whose result *is* assigned is
+#' considered as `input`
+#' 
+#' For example let's consider the function `my_reading_fun(path)`. Then the line
+#' `my_reading_fun("test.txt")` is considered as `output` by remake because there is 
+#' no assignment. Instead, `rmake` considers the line `data = my_reading_fun("test.txt")` 
+#' as `input` because there is an assignment. 
+#' 
+#' As you can imagine, even if this guessing works most of the time,
+#' there will always be false positives and false negatives (inputs considered as output, 
+#' vice versa, or input/outputs not tracked at all).
 #' 
 #' 
 #' @return 
-#' This function does not return anything.
+#' This function does not return anything. It displays on the console the files
+#' that need to be run, and the reason for running them.
 #' 
 #' @examples 
+#' 
+#' # rmake only works project wise:
+#' #  - we create a project in a temp folder with a few files
+#' #  - we apply rmake to this mock project
+#' 
+#' 
 #' 
 #' 
 rmake = function(hard = FALSE, comment = FALSE, project = NULL){
