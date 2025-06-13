@@ -29,39 +29,6 @@ generate_mock_io_funs = function(pkg){
   
 }
 
-init_mock_funs = function(){
-  # DOES NOT WORK!!!!
-  # BEWARE OF POSITONAL ARGUMENTS!!!!
-  # NEED TO CREATE THE MOCK ON THE FLY!!!!
-  
-  # TO FIND OUT IO TYPE:
-  # - if io_target first argument = READ
-  #   otherwise: write
-  
-  io_mock = list()
-  
-  io_targets = c("description", "con", "file", "path")
-  
-  for(type in c("io", "input", "output")){
-    for(arg in io_targets){
-      fun_txt = sma("
-      function(.[arg], ...){
-        if(inherits(.[arg], 'connection')){
-            # => nothing
-            return(NULL)
-        }
-        attr(.[arg], 'type') = .[type]
-        .[arg]
-      }", .delim = ".[ ]")
-    }
-  }
-  
-  
-  
-}
-# 
-# af = file("DATA.R")
-# summary(af)$mode
 
 
 list_flatten = function(x){
