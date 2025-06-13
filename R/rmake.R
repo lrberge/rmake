@@ -206,14 +206,7 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
 
   new = TRUE
   if(file.exists(root_path(".rmake/rmake.RData"))){
-    env = new.env(parent = emptyenv())
-    load(root_path(".rmake/rmake.RData"), envir = env)
-    if("info" %in% ls(env) && inherits(env$info, "rmake")){
-      new = FALSE
-      info = env$info
-    } else {
-      message("'rmake' information in '.rmake/rmake.RData' was corrupted: recreating it.")
-    }
+    info = readRDS(root_path(".rmake/rmake.RData"))
   }
 
   if(new){
@@ -477,7 +470,7 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
   # saving
   info = all_chunks
   class(info) = "rmake"
-  save(info, file = root_path(".rmake/rmake.RData"))
+  saveRDS(info, root_path(".rmake/rmake.RData"))
 
   if(IS_ERROR){
 
