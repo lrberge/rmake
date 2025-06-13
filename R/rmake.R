@@ -1,68 +1,27 @@
-# ======================================== #
-# Author: Laurent Bergé
-#
-# rmake
-# ======================================== #
-
-# DEBUG
-#Use TEACHING/M2 IREF/data challenge to debug, there are many bugs!!!
-
-# DEPENDENCIES:
-# Suggests: rstudioapi
-
-# CURRENT ISSUES:
-# THE PREAMBLE:
-#  - I want to evaluate variables from it (ex: dossier_table)
-#  - I do not want to make read/write operation, these should be delayed
-#  - I want to load the packages and necessary functions
-#  HOW TO?
-#    - eval packages (by keywords)
-#    - use crawl_for_vars to eval only what is needed AND if it is not a I/O operation
-
-# TO CHECK
-# A) The paths must be relative to allow the stuff to work properly across computers
-# when syncing
-#
-# B) the mtimes may be different when the files are synced. In that case, we may need to
-# implement an alternative checking mechanism
-
-# tricky things:
-# - functions in files => dependency as a regular chunk
-
-# LATER:
-# - scan any path, deduce I/O if assigned or unassigned
-# - "am: allow-fail" => when the data input is not present, proceed with the rest of the chunks that depend on its  result (if possible)
-# - "am: no-script-write" => to avoid writing in the script
-# - "am: path(this/is/a/folder, regex-for-files)": dependence declaration
-# - create function that scans all the packages used and look for functions having path or file as argument
-#   then generate automatically the input/output functions (so I don't have to do it manually)
-#   the input/output is detected at assignation time. "writing" functions which return invisibly stuff will
-#   lead to problems
-# - catch the try(IO_fun) or tryCatch(IO_fun)
-
-# Allow to pass a path on to which apply the algorithm
-# => good to create an example project (CRAN)
-# => beware in dependency graph => need to change the argument when computing absolute_to_relative
-
-# LATER:
-# - keep "in mind" all dependencies with their version, a la renv
-# - or just use renv
-
-# LATER: features:
-# - select an output target, and rmake will consolidate all the data sources and the source code to lead to the result.
-# - export = TRUE leads to rmake producing one (or svl) .rmk files and one .R file running
-# automake(reproducible = TRUE)
-# it will install all needed packages (at their appropriate versions) and run the code to generate the results
-# enforces that all source files are "in" the directory
-# If error:
-# - use rstudioapi to go to the line of the error
-# - navigateToFile(file = character(0), line = -1L, column = -1L, moveCursor = TRUE)
-
-####
-#### User-level ####
-####
+#============================================================================#
+#            Author: Laurent R. Bergé, University of Bordeaux                #
+#            Copyright (C) 2025-present, Laurent R. Bergé                    #
+#            MIT License (see project_root/LICENSE)                          #
+#============================================================================#
 
 
+
+
+
+#' Runs tracked code
+#' 
+#' This function first finds the dependencies between chunks of code. Then runs
+#' the code in a specific order to make all the chunks up to date.
+#' 
+#' 
+#' @param hard FALSE 
+#' @param comment FALSE 
+#' @param project NULL 
+#' 
+#' @return 
+#' 
+#' 
+#' 
 rmake = function(hard = FALSE, comment = FALSE, project = NULL){
   
   if(is.null(project)){

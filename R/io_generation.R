@@ -1,8 +1,8 @@
-#----------------------------------------------#
-# Author: Laurent Berge
-# Date creation: Sun Jul 31 10:45:38 2022
-# ~: gets I/O functions
-#----------------------------------------------#
+#============================================================================#
+#            Author: Laurent R. Bergé, University of Bordeaux                #
+#            Copyright (C) 2025-present, Laurent R. Bergé                    #
+#            MIT License (see project_root/LICENSE)                          #
+#============================================================================#
 
 
 

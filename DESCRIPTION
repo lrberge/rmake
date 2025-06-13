@@ -1,17 +1,21 @@
 Package: rmake
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Reproductibility made easy
 Version: 0.1.0
 Authors@R:
     c(person(given = "Laurent",
              family = "Berge",
              role = c("aut", "cre"),
              email = "laurent.berge@u-bordeaux.fr"))
-Description: Make without makefile for R.
+Description: Automatically keeps the results (i.e. outputs) of a project up to 
+  date vis a vis upstream code modifications. 
+  Only the minimal set of code affected by upstream changes is run.
+  Only requires minimal to no user input thanks to the automatic, and static, 
+  dependencies detection (dependencies on functions and files).
 Imports: Rcpp, dreamerr, stringmagic
 LinkingTo: Rcpp
 VignetteBuilder: knitr
-License: GPL-3
+License: MIT + file LICENSE
 RoxygenNote: 7.2.0
 Roxygen: list(markdown = TRUE)
 Encoding: UTF-8
