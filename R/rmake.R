@@ -8,18 +8,77 @@
 
 
 
-#' Runs tracked code
+#' Automatically keeps code chunks up to date
 #' 
-#' This function first finds the dependencies between chunks of code. Then runs
-#' the code in a specific order to make all the chunks up to date.
+#' This function first finds the dependencies between chunks of code. Then it runs
+#' the code in a specific order to make all the chunks up to date. 
+#' To create code chunks in your R files and benefit from `rmake`, see details.
 #' 
 #' 
-#' @param hard FALSE 
-#' @param comment FALSE 
-#' @param project NULL 
+#' @param hard Logical, default is `FALSE`. If `TRUE`, all code chunks will be run afresh, 
+#' as if they were just created.
+#' @param comment Logical, default is `FALSE`. If `TRUE`, then anything that should be printed
+#' in the screen when running the code chunks will be inserted, as comments, in the document. 
+#' Identical comments are not appended.
+#' @param project A path to a folder, default is NULL. If provided, `rmake` will consider
+#' the path given by `project` as the active project. It will then apply to all R files from
+#' this project (not to the current one).
+#' 
+#' @details 
+#' By default `rmake` tracks all R files from a given project and tries to find 
+#' code chunks within them (see the code chunk section).
+#' 
+#' `rmake` tracks two kind of dependencies. First, file dependencies: if a chunk 
+#' uses as input the files that another produced as output. Typical example: one chunk for data
+#' cleaning (output `data.tsv`), another for the analysis of this data (input `data.tsv`).
+#' Second, function dependencies. All user written functions are tracked. If any of 
+#' them is modified, then all chunks that use them are re-run.
+#' 
+#' `rmake` handles indirect dependencies. For example, consider three chunks A, B, and C, 
+#' and let's note a dependency with an arrow. Assume A => B => C (C depends on B which 
+#' depends on A). Then if A's code is modified `rmake` will run the chunks A, then B, then C,
+#' in that specific order.
+#' 
+#' @section Defining a code chunks:
+#' 
+#' `rmake` only tracks code chunks which are pieces of code within the R files of a project.
+#' To create a code chunk, use a header comment (i.e. a comment ending with 4 hashes)
+#' that starts with the equal sign (`=`).
+#' For example the line `# = data cleaning ####` defines the code chunk named 
+#' "data cleaning".
+#' 
+#' A chunk goes from its starting line to either:
+#' - the start of another chunk,
+#' - the end of the R file,
+#' - an ignored chunk.
+#' 
+#' An ignored chunk is a chunk starting with `!=`. For example: `# != dev ####` creates
+#' the ignore chunk "dev". `rmake` will ignore everything after that line until if finds
+#' a valid chunk (if there is one).
+#' 
+#' @section Writing a code chunk:
+#' 
+#' When writing a code chunk, keep in mind the following restriction:  
+#' A code chunk must be a piece of code that is independent from any other code,
+#' except from functions, and the values contained in the `.Rprofile`. 
+#' That is: the user should be able to run it without error from a fresh R session.
+#' 
+#' If your code depends on functions you wrote, simply load them from within the 
+#' `.Rprofile`. If you don't know what the `.Rprofile` is, it is a file whose content
+#' is automatically run during the session's startup.
+#' 
+#' If your code depends on the data created in other places, save this data on disk 
+#' in one chunk, and then load it from disk in another chunk.
+#' 
+#' You need to decompose the key steps of your processing. 
+#' If two pieces of code cannot be separated, it means that they belong to the same chunk.
+#' 
+#' 
 #' 
 #' @return 
+#' This function does not return anything.
 #' 
+#' @examples 
 #' 
 #' 
 rmake = function(hard = FALSE, comment = FALSE, project = NULL){
