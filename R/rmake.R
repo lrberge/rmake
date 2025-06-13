@@ -17,6 +17,8 @@
 #' 
 #' @param hard Logical, default is `FALSE`. If `TRUE`, all code chunks will be run afresh, 
 #' as if they were just created.
+#' @param ask Logical, default is `TRUE`. Whether to interactively ask the user whether or
+#' not to run the code that needs to be run.
 #' @param comment Logical, default is `FALSE`. If `TRUE`, then anything that should be printed
 #' in the screen when running the code chunks will be inserted, as comments, in the document. 
 #' Identical comments are not appended.
@@ -100,14 +102,67 @@
 #' 
 #' @examples 
 #' 
-#' # rmake only works project wise:
-#' #  - we create a project in a temp folder with a few files
-#' #  - we apply rmake to this mock project
+#' # rmake only works project wise, so for this example:
+#' #  1) we create a project in a temp folder with a few files
+#' #  2) we apply rmake to this mock project
+#' 
+#' # Note that in general, rmake should only be called as rmake()
+#' # The example below is artificial, only for illustration
+#' 
+#' #
+#' # We create a project in a temporary directory
+#' # The project contains one R file with two chunks
+#' 
+#' code = "
+#' # = data creation ####
+#' set.seed(0)
+#' n = 100
+#' base = data.frame(x = rnorm(n))
+#' beta = 1
+#' base$y = 1 + beta * base$x + rnorm(n)
+#' 
+#' # we save this data set
+#' saveRDS(base, 'data_example.rds')
+#' 
+#' # = estimation ####
+#' 
+#' # we load the data from disk
+#' base = readRDS('data_example.rds')
+#' 
+#' est = lm(y ~ x, base)
+#' 
+#' # we save the result
+#' saveRDS(summary(est), 'estimation.rds')
+#' "
+#' 
+#' proj_dir = tempdir()
+#' writeLines(code, file.path(proj_dir, "example.R"))
+#' 
+#' # we run rmake on this project
+#' if(interactive()){
+#'   rmake(project = proj_dir)
+#' } else {
+#'   rmake(project = proj_dir, ask = FALSE)
+#' }
+#' 
+#' # let's read the estimation
+#' readRDS(file.path(proj_dir, "estimation.rds"))
+#' 
+#' # now let's change the code of the first chunk: we change beta
+#' writeLines(sub("beta = 1", "beta = 2", code), file.path(proj_dir, "example.R"))
+#' 
+#' # rmake re-runs the code that needs to be run
+#' if(interactive()){
+#'   rmake(project = proj_dir)
+#' } else {
+#'   rmake(project = proj_dir, ask = FALSE)
+#' }
+#' 
+#' # let's see if it worked:
+#' readRDS(file.path(proj_dir, "estimation.rds"))
 #' 
 #' 
-#' 
-#' 
-rmake = function(hard = FALSE, comment = FALSE, project = NULL, dry = FALSE){
+rmake = function(hard = FALSE, ask = TRUE, comment = FALSE, project = NULL, dry = FALSE){
   
   if(is.null(project)){
     project = getOption("rmake_root_path_origin")
@@ -121,7 +176,7 @@ rmake = function(hard = FALSE, comment = FALSE, project = NULL, dry = FALSE){
   options(rmake_root_path = project)
 
   if(hard){
-    rm_file(root_path(".rmake/rmake.RData"))
+    rm_file(root_path(".rmake/rmake.rds"))
   }
 
   # BEWARE: use here to find the root path
@@ -188,7 +243,7 @@ rmake = function(hard = FALSE, comment = FALSE, project = NULL, dry = FALSE){
   dep_mat = dep_graph$dep_mat
 
   lazy_run(all_chunks = dep_graph$all_chunks, dep_mat = dep_graph$dep_mat, 
-           env_rprofile = env_rprofile, comment = comment)
+           env_rprofile = env_rprofile, comment = comment, ask = ask)
 
 }
 
@@ -214,7 +269,7 @@ path_list_to_vector = function(x){
 #' 
 #' @return 
 #' It returns a list. The names of the list are the names of the code chunks in the 
-#' following format: `filename@chunkname`. Each elements of the list contains 
+#' following format: `filename@chunkname`. Each element of the list contains 
 #' two elements: `input` and `output`, which are both character vectors of paths.
 #' 
 #' 
@@ -238,7 +293,7 @@ rmake_path_dependencies = function(project = NULL){
 ####
 
 
-lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
+lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE, ask = TRUE){
   # main evaluation function
   # runs only what is necessary
   # writes in the textfile directly if asked for (and needed).
@@ -250,8 +305,8 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
   }
 
   new = TRUE
-  if(file.exists(root_path(".rmake/rmake.RData"))){
-    info = readRDS(root_path(".rmake/rmake.RData"))
+  if(file.exists(root_path(".rmake/rmake.rds"))){
+    info = readRDS(root_path(".rmake/rmake.rds"))
   }
 
   if(new){
@@ -395,7 +450,6 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
     msg = paste(msg, collapse = "\n")
     message(msg)
 
-    ask = TRUE
     if(ask){
       qui = !chunk_up_to_date & names(all_chunks) %in% names(info) & !is_empty
       if(any(qui)){
@@ -515,7 +569,7 @@ lazy_run = function(all_chunks, dep_mat, env_rprofile, comment = FALSE){
   # saving
   info = all_chunks
   class(info) = "rmake"
-  saveRDS(info, root_path(".rmake/rmake.RData"))
+  saveRDS(info, root_path(".rmake/rmake.rds"))
 
   if(IS_ERROR){
 
