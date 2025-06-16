@@ -2153,6 +2153,39 @@ is_read_fun = function(line){
   return(FALSE)
 }
 
+
+remove_magrittr_pipe = function(expr){
+  # removes %>% pipes
+  
+  if(length(expr) == 3 && is_operator(expr, "%>%")){
+    arg = expr[[2]]
+    fun = expr[[3]]
+    
+    if(length(arg) == 3 && is_operator(arg, "%>%")){
+      arg = remove_magrittr_pipe(arg)
+    }
+    
+    if(is.call(fun)){
+      if(length(fun) == 1){
+        fun[[2]] = arg
+        expr = fun
+        
+      } else {
+        new_fun = fun
+        new_fun[[2]] = arg
+        for(i in 2:length(fun)){
+          new_fun[[i + 1]] = fun[[i]]
+        }
+        
+        expr = new_fun
+      }
+    }
+    
+  }
+  
+  expr
+}
+
 has_path_argument = function(expr){
   
   # limitations:
@@ -2167,28 +2200,7 @@ has_path_argument = function(expr){
   if(length(expr) >= 2){
     
     # piping
-    if(length(expr) == 3 && is_operator(expr, "%>%")){
-      arg = expr[[2]]
-      fun = expr[[3]]
-      
-      if(is.call(fun)){
-        if(length(fun) == 1){
-          fun[[2]] = arg
-          expr = fun
-          
-        } else {
-          new_fun = fun
-          new_fun[[2]] = arg
-          for(i in 2:length(fun)){
-            new_fun[[i + 1]] = fun[[i]]
-          }
-          
-          expr = new_fun
-        }
-      }
-      
-    }
-    
+    expr = remove_magrittr_pipe(expr)
     
     # case 1: path given explicitly
     
@@ -2240,6 +2252,8 @@ extract_rw_path = function(line, read = FALSE, write = FALSE,
   if(!read && !write){
     stop("You mut provide either the argument 'read' or the argument 'write'.")
   }
+  
+  browser()
 
   all_funs = setdiff(all.vars(line, functions = TRUE), all.vars(line))
 
@@ -2261,6 +2275,8 @@ extract_rw_path = function(line, read = FALSE, write = FALSE,
     } else {
       fun_call = line
     }
+    
+    fun_call = remove_magrittr_pipe(fun_call)
     
     # we create the mock function
     fun_name = as.character(fun_call[[1]])
