@@ -248,6 +248,17 @@ rmake = function(hard = FALSE, ask = TRUE, comment = FALSE, project = NULL, dry 
 }
 
 
+path_in = function(path){
+  check_arg("path")
+  path
+}
+
+path_out = function(path){
+  check_arg("path")
+  path
+}
+
+
 path_list_to_vector = function(x){
   res = c()
   for(path_info in x){
@@ -2096,6 +2107,7 @@ absolute_to_relative = function(path_all, origin = getOption("rmake_root_path"))
 }
 
 is_write_fun = function(line){
+  
   all_funs = setdiff(all.vars(line, functions = TRUE), all.vars(line))
   
   if(any(names(write_funs) %in% all_funs)){
@@ -2118,6 +2130,8 @@ is_write_fun = function(line){
 }
 
 is_read_fun = function(line){
+  
+  # browser()
   
   all_funs = setdiff(all.vars(line, functions = TRUE), all.vars(line))
   
@@ -2151,6 +2165,30 @@ has_path_argument = function(expr){
   # add recursivity????
   
   if(length(expr) >= 2){
+    
+    # piping
+    if(length(expr) == 3 && is_operator(expr, "%>%")){
+      arg = expr[[2]]
+      fun = expr[[3]]
+      
+      if(is.call(fun)){
+        if(length(fun) == 1){
+          fun[[2]] = arg
+          expr = fun
+          
+        } else {
+          new_fun = fun
+          new_fun[[2]] = arg
+          for(i in 2:length(fun)){
+            new_fun[[i + 1]] = fun[[i]]
+          }
+          
+          expr = new_fun
+        }
+      }
+      
+    }
+    
     
     # case 1: path given explicitly
     

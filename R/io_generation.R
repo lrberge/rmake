@@ -137,7 +137,8 @@ read_funs = list(
     if(!missing(file)) return(file)
     if(!missing(input) && !grepl("\n", input)) return(input)
     ""
-  }
+  },
+  path_in = function(path) path
 )
 
 
@@ -145,7 +146,8 @@ write_funs = list(
   save = function(..., file) file,
   write_fst = function(x, path, ...) path,
   fwrite = function(x, file, ...) file,
-  write.csv = function(x, file) file
+  write.csv = function(x, file) file,
+  path_out = function(path) path
 )
 
 #

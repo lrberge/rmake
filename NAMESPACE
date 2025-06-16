@@ -7,6 +7,8 @@ useDynLib(rmake, .registration = TRUE)
 export(rmake)
 export(rmake_path_dependencies)
 
+export(path_in, path_out)
+
 
 #
 # imports
