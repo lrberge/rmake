@@ -1287,7 +1287,8 @@ extract_code_info = function(code, line_nb = 1, fun_list = NULL,
       for(var in new_depends){
         for(j in seq_along(fun_list)){
           if(var %in% fun_list[[j]]){
-            function_depends[[var]] = list(fun = var, source = names(fun_list)[j], type = "assigned")
+            function_depends[[var]] = list(fun = var, source = names(fun_list)[j], 
+                                           type = "assigned")
           }
         }
       }
@@ -2252,15 +2253,13 @@ extract_rw_path = function(line, read = FALSE, write = FALSE,
   if(!read && !write){
     stop("You mut provide either the argument 'read' or the argument 'write'.")
   }
-  
-  browser()
 
   all_funs = setdiff(all.vars(line, functions = TRUE), all.vars(line))
 
   rw_funs = if(read) read_funs else write_funs
 
   fun_name = intersect(names(rw_funs), all_funs)
-
+  
   if(length(fun_name) > 1){
     stopi("Internal error: Several {&read ; reading ; writing} functions in a same line were found => revise code. WIP improve this message")
   }
@@ -2359,6 +2358,29 @@ get_fun_hash = function(x){
   }
 
   res
+}
+
+
+parse_io = function(expr, is_assignment = FALSE, is_root = TRUE){
+  # takes an expression and returns an object with the IO paths
+  
+  res = list(is_io = FALSE, path_input = list(), path_output = list())
+  
+  if(length(expr) <= 1){
+    return(res)
+  }
+  
+  if(length(expr) == 3 && is_operator(expr, c("=", "<-"))){
+    is_assignment = TRUE
+    expr = expr[[3]]
+  }
+  
+  expr = remove_magrittr_pipe(expr)
+  
+  
+  
+  
+  return(res)
 }
 
 
